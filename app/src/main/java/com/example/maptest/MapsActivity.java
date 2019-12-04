@@ -1,11 +1,18 @@
 package com.example.maptest;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
@@ -45,6 +52,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Marker marker1,marker2,marker3,marker4;
     private Polyline polylineRoute;
+
+    private final int REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -219,6 +228,54 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         //使用者無法處理錯誤
         showDlgGooglePlayServicesFailAndExitApp();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        //檢查收到的權限要求編號是否和送出相同
+        if(requestCode == REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION){
+            if((grantResults[0]) == PackageManager.PERMISSION_GRANTED){
+                // 再檢查一次，就會啟動定位
+                checkLocationPermissionAndEnableIt(true);
+                return;
+            }
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+    //負責取得定位的函式
+    private void checkLocationPermissionAndEnableIt(boolean on){
+        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED){
+            //這項功能尚未取得使用者的同意
+            //開始執行徵詢使用者的流程
+            if(ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this,Manifest.permission.ACCESS_FINE_LOCATION)){
+                AlertDialog.Builder builder = new AlertDialog.Builder(MapsActivity.this);
+                builder.setTitle("提示");
+                builder.setMessage("App需要啟動定位功能");
+                builder.setCancelable(false);
+                builder.setPositiveButton("確定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        //使用者答覆後執行onRequestPermissionsResult
+                        ActivityCompat.requestPermissions(MapsActivity.this,new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION},
+                                REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION);
+                    }
+                        });
+                builder.show();
+
+                return;
+            }else {
+                ActivityCompat.requestPermissions(MapsActivity.this,new String[]{
+                                Manifest.permission.ACCESS_FINE_LOCATION},
+                        REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION);
+
+                return;
+            }
+
+
+
+        }
     }
 
     @Override
