@@ -6,11 +6,13 @@ import androidx.fragment.app.FragmentActivity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -19,11 +21,17 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+import java.util.ArrayList;
+
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
 
     private static final int REQUEST_CODE_CHECK_GOOGLE_PLAY_SERVICES = 1000;
     private GoogleMap mMap;
@@ -34,6 +42,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             "40.6892490,-74.0445000",
             "48.8582220,2.2945000"};
     private boolean mbIsZoomFirst = true;
+
+    private Marker marker1,marker2,marker3,marker4;
+    private Polyline polylineRoute;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +58,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         spnMapType.setOnItemSelectedListener(spnMapTypeOnItemSelected);
 
         Button btn3DMap = findViewById(R.id.btn3DMap);
-        btn3DMap.setOnClickListener(btn3DMapOnClick);
+        btn3DMap.setOnClickListener(this);
+
+        Button btnAddMarker = findViewById(R.id.btnAddMarker);
+        btnAddMarker.setOnClickListener(this);
+
+        Button btnRemoveMarker = findViewById(R.id.btnRemoveMarker);
+        btnRemoveMarker.setOnClickListener(this);
+
+        Button btnShowRoute = findViewById(R.id.btnShowRoute);
+        btnShowRoute.setOnClickListener(this);
+
+        Button btnHideRoute = findViewById(R.id.btnHideRoute);
+        btnHideRoute.setOnClickListener(this);
 
         //建立SupportMapFragment，並設定Map的CallBack
         SupportMapFragment supportMapFragment = new SupportMapFragment();
@@ -75,10 +98,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        //設定GoogelMap的Info Window
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+            @Override
+            public View getInfoWindow(Marker marker) {
+                View v = getLayoutInflater().inflate(R.layout.info_window,null);
+                TextView tetTitle = v.findViewById(R.id.txtTitle);
+                tetTitle.setText(marker.getTitle());
+                TextView txtSnippet = v.findViewById(R.id.txtSnippet);
+                txtSnippet.setText(marker.getSnippet());
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                return null;
+            }
+        });
+        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(Marker marker) {
+                marker.hideInfoWindow();
+            }
+        });
+
+        //建立Polyline  並且將它隱藏
+        PolylineOptions polylineOptions = new PolylineOptions()
+                .width(10)
+                .color(Color.RED);
+        ArrayList<LatLng> listLatLng = new ArrayList<LatLng>();
+        listLatLng.add(new LatLng(25.031,121.5650000));
+        listLatLng.add(new LatLng(25.037,121.5650000));
+        listLatLng.add(new LatLng(25.037,121.5600000));
+        polylineOptions.addAll(listLatLng);
+        polylineRoute = mMap.addPolyline(polylineOptions);
+        polylineRoute.setVisible(false);
     }
 
     private AdapterView.OnItemSelectedListener spnLocationOnItemSelected = new AdapterView.OnItemSelectedListener() {
@@ -126,19 +180,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
-    private View.OnClickListener btn3DMapOnClick = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            CameraUpdate cameraUpdate = CameraUpdateFactory.newCameraPosition(
-                    new CameraPosition.Builder()
-                    .target(mMap.getCameraPosition().target)
-                    .tilt(60)
-                    .zoom(18)
-                    .build());
-            mMap.animateCamera(cameraUpdate);
-        }
-    };
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         switch (requestCode){
@@ -178,5 +219,92 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         //使用者無法處理錯誤
         showDlgGooglePlayServicesFailAndExitApp();
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.btn3DMap:
+                CameraUpdate cameraUpdate = CameraUpdateFactory.newCameraPosition(
+                        new CameraPosition.Builder()
+                                .target(mMap.getCameraPosition().target)
+                                .tilt(60)
+                                .zoom(18)
+                                .build());
+                mMap.animateCamera(cameraUpdate);
+                break;
+
+            case R.id.btnAddMarker:
+                if(marker1 == null){
+                    String[] sLocation = mLocations[0].split(",");
+                    double dlat = Double.parseDouble(sLocation[0]);
+                    double dlon = Double.parseDouble(sLocation[1]);
+                    marker1 = mMap.addMarker(new MarkerOptions()
+                            .title("台北101")
+                            .snippet("全台灣最高")
+                            .position(new LatLng(dlat,dlon))
+                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.pointer))
+                            .anchor(0.5f,0.5f));
+                }
+                if(marker2 == null){
+                    String[] sLocation = mLocations[1].split(",");
+                    double dlat = Double.parseDouble(sLocation[0]);
+                    double dlon = Double.parseDouble(sLocation[1]);
+                    marker2 = mMap.addMarker(new MarkerOptions()
+                            .title("中國長城")
+                            .snippet("全長6000公里")
+                            .position(new LatLng(dlat,dlon))
+                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.pointer))
+                            .anchor(0.5f,0.5f));
+                }
+                if(marker3 == null){
+                    String[] sLocation = mLocations[2].split(",");
+                    double dlat = Double.parseDouble(sLocation[0]);
+                    double dlon = Double.parseDouble(sLocation[1]);
+                    marker3 = mMap.addMarker(new MarkerOptions()
+                            .title("紐約自由女神")
+                            .snippet("總高93公尺")
+                            .position(new LatLng(dlat,dlon))
+                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.pointer))
+                            .anchor(0.5f,0.5f));
+                }
+                if(marker4 == null){
+                    String[] sLocation = mLocations[3].split(",");
+                    double dlat = Double.parseDouble(sLocation[0]);
+                    double dlon = Double.parseDouble(sLocation[1]);
+                    marker4 = mMap.addMarker(new MarkerOptions()
+                            .title("巴黎鐵塔")
+                            .snippet("又稱艾菲爾鐵塔")
+                            .position(new LatLng(dlat,dlon))
+                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.pointer))
+                            .anchor(0.5f,0.5f));
+                }break;
+
+            case R.id.btnRemoveMarker:
+                if(marker1 !=null){
+                    marker1.remove();
+                    marker1 = null;
+                }
+                if(marker2 !=null){
+                    marker2.remove();
+                    marker2 = null;
+                }
+                if(marker3 !=null){
+                    marker3.remove();
+                    marker3 = null;
+                }
+                if(marker4 !=null){
+                    marker4.remove();
+                    marker4 = null;
+                }break;
+
+            case R.id.btnShowRoute:
+                polylineRoute.setVisible(true);
+                break;
+
+            case R.id.btnHideRoute:
+                polylineRoute.setVisible(false);
+                break;
+        }
     }
 }

@@ -6,11 +6,53 @@
     xmlns:map="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/btn3DMap"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="3D MAP"/>
+        android:gravity="center_horizontal">
+
+        <Button
+            android:id="@+id/btn3DMap"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.2"
+            android:text="3D"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnAddMarker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.2"
+            android:text="顯示地標"
+            android:textSize="12sp" />
+        <Button
+            android:id="@+id/btnRemoveMarker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.2"
+            android:text="隱藏地標"
+            android:textSize="12sp" />
+        <Button
+            android:id="@+id/btnShowRoute"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.2"
+            android:text="顯示路徑"
+            android:textSize="12sp" />
+        <Button
+            android:id="@+id/btnHideRoute"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.2"
+            android:text="隱藏地標"
+            android:textSize="12sp" />
+
+
+
+
+
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
