@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">MapTest2</string>
+    <string name="title_activity_maps">Map</string>
+    <string-array name="locations">
+        <item> 台北101</item>
+        <item> 中國長城</item>
+        <item> 紐約自由女神</item>
+        <item> 巴黎鐵塔</item>
+    </string-array>
+
+    <string-array name="mapType">
+        <item> 一般街道地圖</item>
+        <item> 衛星影像地圖</item>
+        <item> 地形圖</item>
+        <item> 混合地圖</item>
+    </string-array>
+</resources>
