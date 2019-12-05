@@ -40,12 +40,13 @@
             android:layout_weight="0.2"
             android:text="顯示路徑"
             android:textSize="12sp" />
+
         <Button
             android:id="@+id/btnHideRoute"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="0.2"
-            android:text="隱藏地標"
+            android:text="隱藏路徑"
             android:textSize="12sp" />
 
 
