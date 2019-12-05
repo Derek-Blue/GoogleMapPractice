@@ -14,18 +14,24 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -38,7 +44,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, LocationListener, LocationSource {
 
     private static final int REQUEST_CODE_CHECK_GOOGLE_PLAY_SERVICES = 1000;
     private GoogleMap mMap;
@@ -54,6 +60,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Polyline polylineRoute;
 
     private final int REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION = 100;
+    private LocationManager locationManager;
+    private OnLocationChangedListener mLocationChangedListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,9 +98,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .add(R.id.frameLayMap,supportMapFragment)
                 .commit();
 
+        locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
+
         checkGooglePlayServices();
     }
+    //*App 背景/前景作業;開始/停止定位功能
+    @Override
+    protected void onStart() {
+        super.onStart();
 
+        if(mMap != null)
+            checkLocationPermissionAndEnableIt(true);
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        checkLocationPermissionAndEnableIt(false);
+    }
 
     /**
      * Manipulates the map once available.
@@ -106,6 +129,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+
+        mMap.setMyLocationEnabled(true);//回到定位點按鈕
+        mMap.setLocationSource(this);
 
         //設定GoogelMap的Info Window
         mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
@@ -142,6 +168,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         polylineOptions.addAll(listLatLng);
         polylineRoute = mMap.addPolyline(polylineOptions);
         polylineRoute.setVisible(false);
+
+        //取得上一次定位資料
+        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+           == PackageManager.PERMISSION_GRANTED){
+            Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if(location == null){
+                location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            }
+            if(location != null){
+                Toast.makeText(MapsActivity.this,"成功取得上一次定位",Toast.LENGTH_SHORT).show();
+                onLocationChanged(location);
+            }else
+                Toast.makeText(MapsActivity.this,"沒有上一次定位資料",Toast.LENGTH_SHORT).show();
+        }
     }
 
     private AdapterView.OnItemSelectedListener spnLocationOnItemSelected = new AdapterView.OnItemSelectedListener() {
@@ -189,6 +229,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
+    //*Googel Play Server檢查
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         switch (requestCode){
@@ -229,7 +270,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //使用者無法處理錯誤
         showDlgGooglePlayServicesFailAndExitApp();
     }
+    //...*
 
+    //*手機定位權限檢查
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         //檢查收到的權限要求編號是否和送出相同
@@ -257,8 +300,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         //使用者答覆後執行onRequestPermissionsResult
-                        ActivityCompat.requestPermissions(MapsActivity.this,new String[]{
-                            Manifest.permission.ACCESS_FINE_LOCATION},
+                        ActivityCompat.requestPermissions(MapsActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                                 REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION);
                     }
                         });
@@ -266,15 +308,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 return;
             }else {
-                ActivityCompat.requestPermissions(MapsActivity.this,new String[]{
-                                Manifest.permission.ACCESS_FINE_LOCATION},
+                ActivityCompat.requestPermissions(MapsActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                         REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION);
 
                 return;
             }
-
-
-
+        }
+        //根據 on (boolean) 參數的值，啟動或關閉定位
+        if(on){
+            //如果GPS功能有開啟，優先使用GPS定位，else使用網路定位
+            if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,5,this);
+                Toast.makeText(MapsActivity.this,"使用GPS定位",Toast.LENGTH_SHORT).show();
+            }else if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,5000,5,this);
+                    Toast.makeText(MapsActivity.this,"使用GPS定位",Toast.LENGTH_SHORT).show();
+                }
+        }else {
+            locationManager.removeUpdates(this);
+            Toast.makeText(MapsActivity.this,"定位功能已停用",Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -363,5 +415,56 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 polylineRoute.setVisible(false);
                 break;
         }
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        //把新的位置傳給 Google Map的my-location layer
+        if(mLocationChangedListener != null)
+            mLocationChangedListener.onLocationChanged(location);
+
+        //地圖移動到新的位置
+        mMap.animateCamera(CameraUpdateFactory.newLatLng(
+                new LatLng(location.getLatitude(),location.getLongitude())));
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int i, Bundle extras) {
+        //定位狀態監聽
+        String str = provider;
+        switch (i){
+            case LocationProvider.OUT_OF_SERVICE:
+                str += "定位功能無法使用";
+                break;
+            case LocationProvider.TEMPORARILY_UNAVAILABLE:
+                str += "暫時無法定位";
+                break;//正在定位時會傳入這個值
+        }
+        Toast.makeText(MapsActivity.this,str,Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        Toast.makeText(MapsActivity.this,provider + "定位功能開啟",Toast.LENGTH_SHORT).show();
+        checkLocationPermissionAndEnableIt(true);
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        Toast.makeText(MapsActivity.this,provider + "定位功能已經關閉",Toast.LENGTH_SHORT).show();
+        checkLocationPermissionAndEnableIt(false);
+    }
+
+    @Override
+    public void activate(OnLocationChangedListener onLocationChangedListener) {
+        mLocationChangedListener = onLocationChangedListener;
+        checkLocationPermissionAndEnableIt(true);
+        Toast.makeText(MapsActivity.this,"地圖的my-location layer已經啟用",Toast.LENGTH_SHORT).show();
+    }
+    @Override
+    public void deactivate() {
+        mLocationChangedListener = null;
+        checkLocationPermissionAndEnableIt(false);
+        Toast.makeText(MapsActivity.this,"地圖的my-location layer已被關閉",Toast.LENGTH_SHORT).show();
     }
 }
