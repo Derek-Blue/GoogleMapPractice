@@ -19,6 +19,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -59,9 +60,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Marker marker1,marker2,marker3,marker4;
     private Polyline polylineRoute;
 
-    private final int REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION = 100;
+    private static final int REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION = 1001;
     private LocationManager locationManager;
     private OnLocationChangedListener mLocationChangedListener;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,8 +101,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .commit();
 
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
-
         checkGooglePlayServices();
+
+
     }
     //*App 背景/前景作業;開始/停止定位功能
     @Override
@@ -130,10 +133,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        mMap.setMyLocationEnabled(true);//回到定位點按鈕
-        mMap.setLocationSource(this);
+        checkLocationPermissionAndEnableIt(true);
 
-        //設定GoogelMap的Info Window
+        mMap.setLocationSource(this);
+        mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+            @Override
+            public boolean onMyLocationButtonClick() {
+
+                if(ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED){
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,3000,0,locationListener);
+                    Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+                    if(location != null){
+                    mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(),location.getLongitude())));
+                    }else {
+                        Toast.makeText(MapsActivity.this,"定位中",Toast.LENGTH_SHORT).show();
+                    }
+
+                }
+
+                return false;
+            }
+        });
+
+
+        //設定GoogelMap的Info Window(註解)
         mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
             @Override
             public View getInfoWindow(Marker marker) {
@@ -170,7 +195,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         polylineRoute.setVisible(false);
 
         //取得上一次定位資料
-        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+        if(ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION)
            == PackageManager.PERMISSION_GRANTED){
             Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             if(location == null){
@@ -184,100 +209,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private AdapterView.OnItemSelectedListener spnLocationOnItemSelected = new AdapterView.OnItemSelectedListener() {
-        @Override
-        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            String[] sLocation = mLocations[position].split(",");
-            double dlat = Double.parseDouble(sLocation[0]);
-            double dlon = Double.parseDouble(sLocation[1]);
-            if(mbIsZoomFirst){
-                mbIsZoomFirst = false;
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(dlat,dlon),15));
-            }else {
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(dlat,dlon)));
-            }
-        }
-        @Override
-        public void onNothingSelected(AdapterView<?> parent) {
-
-        }
-    };
-
-    private AdapterView.OnItemSelectedListener spnMapTypeOnItemSelected = new AdapterView.OnItemSelectedListener() {
-        @Override
-        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            //更改地圖模式
-            switch (position){
-                case 0 :
-                    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-                    break;
-                case 1 :
-                    mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-                    break;
-                case 2 :
-                    mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
-                    break;
-                case 3 :
-                    mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-                    break;
-            }
-        }
-
-        @Override
-        public void onNothingSelected(AdapterView<?> parent) {
-
-        }
-    };
-
-    //*Googel Play Server檢查
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        switch (requestCode){
-            case REQUEST_CODE_CHECK_GOOGLE_PLAY_SERVICES:
-                //如果使用者取消處理Google Play Services的問題，結束APP
-                if (requestCode == RESULT_CANCELED)
-                    showDlgGooglePlayServicesFailAndExitApp();
-                break;
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
-    //錯誤的處理方法
-    private void showDlgGooglePlayServicesFailAndExitApp(){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("ERROR");
-        builder.setMessage("找不到Google Play Services,程式無法執行");
-        builder.setIcon(android.R.drawable.ic_dialog_info);
-        builder.setCancelable(false);
-        builder.setPositiveButton("確定", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                finish();
-            }
-        });builder.show();
-    }
-
-    private void checkGooglePlayServices(){
-        GoogleApiAvailability googleApi = GoogleApiAvailability.getInstance();
-        int resultCode = googleApi.isGooglePlayServicesAvailable(this);
-        if(resultCode == ConnectionResult.SUCCESS)
-            return;
-
-        //是否使用者可以自行排除錯誤
-        if(googleApi.isUserResolvableError(resultCode)){
-            googleApi.showErrorDialogFragment(this,resultCode,REQUEST_CODE_CHECK_GOOGLE_PLAY_SERVICES);
-            return;
-        }
-        //使用者無法處理錯誤
-        showDlgGooglePlayServicesFailAndExitApp();
-    }
-    //...*
 
     //*手機定位權限檢查
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         //檢查收到的權限要求編號是否和送出相同
         if(requestCode == REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION){
-            if((grantResults[0]) == PackageManager.PERMISSION_GRANTED){
+            if(grantResults.length > 0 && (grantResults[0]) == PackageManager.PERMISSION_GRANTED){
                 // 再檢查一次，就會啟動定位
                 checkLocationPermissionAndEnableIt(true);
                 return;
@@ -285,13 +223,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
+
     //負責取得定位的函式
     private void checkLocationPermissionAndEnableIt(boolean on){
-        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED){
+        if(ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED){
             //這項功能尚未取得使用者的同意
             //開始執行徵詢使用者的流程
-            if(ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this,Manifest.permission.ACCESS_FINE_LOCATION)){
+            if(ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this,android.Manifest.permission.ACCESS_FINE_LOCATION)){
                 AlertDialog.Builder builder = new AlertDialog.Builder(MapsActivity.this);
                 builder.setTitle("提示");
                 builder.setMessage("App需要啟動定位功能");
@@ -300,7 +241,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         //使用者答覆後執行onRequestPermissionsResult
-                        ActivityCompat.requestPermissions(MapsActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        ActivityCompat.requestPermissions(MapsActivity.this,new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                                 REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION);
                     }
                         });
@@ -308,7 +249,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 return;
             }else {
-                ActivityCompat.requestPermissions(MapsActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                ActivityCompat.requestPermissions(MapsActivity.this,new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                         REQUEST_PERMISSION_FOR_ACCESS_FINE_LOCATION);
 
                 return;
@@ -316,13 +257,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         //根據 on (boolean) 參數的值，啟動或關閉定位
         if(on){
+            mMap.setMyLocationEnabled(true);
             //如果GPS功能有開啟，優先使用GPS定位，else使用網路定位
             if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,5,this);
                 Toast.makeText(MapsActivity.this,"使用GPS定位",Toast.LENGTH_SHORT).show();
+
             }else if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
                     locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,5000,5,this);
                     Toast.makeText(MapsActivity.this,"使用GPS定位",Toast.LENGTH_SHORT).show();
+
                 }
         }else {
             locationManager.removeUpdates(this);
@@ -417,6 +361,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+
+    private AdapterView.OnItemSelectedListener spnLocationOnItemSelected = new AdapterView.OnItemSelectedListener() {
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            String[] sLocation = mLocations[position].split(",");
+            double dlat = Double.parseDouble(sLocation[0]);
+            double dlon = Double.parseDouble(sLocation[1]);
+            if(mbIsZoomFirst){
+                mbIsZoomFirst = false;
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(dlat,dlon),15));
+            }else {
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(dlat,dlon)));
+            }
+        }
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {
+
+        }
+    };
+
+    private AdapterView.OnItemSelectedListener spnMapTypeOnItemSelected = new AdapterView.OnItemSelectedListener() {
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            //更改地圖模式
+            switch (position){
+                case 0 :
+                    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                    break;
+                case 1 :
+                    mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                    break;
+                case 2 :
+                    mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                    break;
+                case 3 :
+                    mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                    break;
+            }
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {
+
+        }
+    };
+
     @Override
     public void onLocationChanged(Location location) {
         //把新的位置傳給 Google Map的my-location layer
@@ -467,4 +457,71 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         checkLocationPermissionAndEnableIt(false);
         Toast.makeText(MapsActivity.this,"地圖的my-location layer已被關閉",Toast.LENGTH_SHORT).show();
     }
+
+
+
+    //*Googel Play Server檢查
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        switch (requestCode){
+            case REQUEST_CODE_CHECK_GOOGLE_PLAY_SERVICES:
+                //如果使用者取消處理Google Play Services的問題，結束APP
+                if (requestCode == RESULT_CANCELED)
+                    showDlgGooglePlayServicesFailAndExitApp();
+                break;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+    //錯誤的處理方法
+    private void showDlgGooglePlayServicesFailAndExitApp(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("ERROR");
+        builder.setMessage("找不到Google Play Services,程式無法執行");
+        builder.setIcon(android.R.drawable.ic_dialog_info);
+        builder.setCancelable(false);
+        builder.setPositiveButton("確定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        });builder.show();
+    }
+
+    private void checkGooglePlayServices(){
+        GoogleApiAvailability googleApi = GoogleApiAvailability.getInstance();
+        int resultCode = googleApi.isGooglePlayServicesAvailable(this);
+        if(resultCode == ConnectionResult.SUCCESS)
+            return;
+
+        //是否使用者可以自行排除錯誤
+        if(googleApi.isUserResolvableError(resultCode)){
+            googleApi.showErrorDialogFragment(this,resultCode,REQUEST_CODE_CHECK_GOOGLE_PLAY_SERVICES);
+            return;
+        }
+        //使用者無法處理錯誤
+        showDlgGooglePlayServicesFailAndExitApp();
+    }//...*
+
+    //for mapButtonClickListener
+    private LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+    };
 }
