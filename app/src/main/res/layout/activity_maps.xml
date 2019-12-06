@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:map="http://schemas.android.com/apk/res-auto"
+    android:layout_margin="10dp"
     android:orientation="vertical">
 
     <LinearLayout
@@ -11,46 +12,63 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal">
 
-        <Button
-            android:id="@+id/btn3DMap"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.2"
-            android:text="3D"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/btnAddMarker"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.2"
-            android:text="顯示地標"
-            android:textSize="12sp" />
-        <Button
-            android:id="@+id/btnRemoveMarker"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.2"
-            android:text="隱藏地標"
-            android:textSize="12sp" />
-        <Button
-            android:id="@+id/btnShowRoute"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.2"
-            android:text="顯示路徑"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/btnHideRoute"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.2"
-            android:text="隱藏路徑"
-            android:textSize="12sp" />
+            android:orientation="horizontal">
 
 
+            <Button
+                android:id="@+id/btn3DMap"
+                style="@style/bk_button"
+                android:layout_marginRight="5dp"
+                android:layout_weight="0.2"
+                android:fontFamily="monospace"
+                android:text="3D" />
 
+            <Button
+                android:id="@+id/btnAddMarker"
+                style="@style/bk_button"
+                android:layout_marginRight="5dp"
+                android:layout_weight="0.2"
+                android:fontFamily="monospace"
+                android:text="顯示地標" />
+
+            <Button
+                android:id="@+id/btnRemoveMarker"
+                style="@style/bk_button"
+
+                android:layout_marginRight="5dp"
+                android:layout_weight="0.2"
+                android:fontFamily="monospace"
+                android:text="隱藏地標" />
+
+            <Button
+                android:id="@+id/btnShowRoute"
+                style="@style/bk_button"
+                android:layout_marginRight="5dp"
+                android:layout_weight="0.2"
+                android:fontFamily="monospace"
+                android:text="顯示路徑" />
+
+            <Button
+                android:id="@+id/btnHideRoute"
+                style="@style/bk_button"
+
+                android:layout_weight="0.2"
+                android:fontFamily="monospace"
+                android:text="隱藏路徑" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1.5dp"
+            android:background="@color/blue" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/white" />
 
 
     </LinearLayout>
@@ -73,14 +91,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
-            android:drawSelectorOnTop = "true"
-            android:entries="@array/mapType"/>
+            android:drawSelectorOnTop="true"
+            android:entries="@array/mapType" />
 
     </LinearLayout>
 
     <FrameLayout
         android:id="@+id/frameLayMap"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent" />
 
 </LinearLayout>

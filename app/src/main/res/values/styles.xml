@@ -7,5 +7,16 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
+    <style name="bk_button">
+        <item name="android:layout_width">110dp</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:background">@drawable/button_selector</item>
+        <item name="android:shadowColor">@color/deepblue</item>
+        <item name="android:shadowRadius">1</item>
+        <item name="android:shadowDx">1</item>
+        <item name="android:shadowDy">1</item>
+    </style>
 
 </resources>
